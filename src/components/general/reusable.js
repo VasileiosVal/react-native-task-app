@@ -1,5 +1,5 @@
 import React from "react";
-import { TextInput, Text } from "react-native";
+import { TextInput } from "react-native";
 
 export const Input = ({
   autoCapitalize = "none",

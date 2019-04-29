@@ -5,15 +5,16 @@ import {
   Text,
   StyleSheet,
   ImageBackground,
-  TouchableOpacity,
-  TextInput
+  TouchableOpacity
 } from "react-native";
 import Joi from "react-native-joi";
-import { Icon } from "native-base";
+import { Icon, Toast } from "native-base";
+import axios from "axios";
 
 import gradient from "../../assets/images/gradient.png";
 import { Input } from "../general/reusable";
 import { getLoginSchema } from "../../utils/joi-schema";
+import { validateResult } from "../../utils/general-functions";
 
 const Login = () => {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
@@ -33,8 +34,27 @@ const Login = () => {
     setCredentials(newCredentials);
   };
 
-  const submit = () => {
-    alert("logged in");
+  const submit = async () => {
+    const result = Joi.validate(credentials, getLoginSchema(), {
+      stripUnknown: true,
+      abortEarly: false
+    });
+    const errorsFound = validateResult(result);
+    if (errorsFound) return setErrors(errorsFound);
+    await attemptLogin(result.value);
+  };
+
+  const attemptLogin = async credentials => {
+    try {
+      const { data } = await axios.post("/auth/login", credentials);
+      console.log(data);
+    } catch (e) {
+      if (e.response.status === 400)
+        Toast.show({
+          text: e.response.data.error,
+          duration: 2000
+        });
+    }
   };
 
   return (
@@ -53,49 +73,66 @@ const Login = () => {
         </Animatable.View>
         <Animatable.View style={styles.content} animation="fadeIn" delay={600}>
           <Text style={styles.contentMainText}>Please login to proceed</Text>
-          <View
-            style={
-              validationOnPress.email
-                ? validationOnPress.email === "success"
-                  ? {
-                      ...styles.inputContainer,
-                      ...styles.inputContainerSuccess
-                    }
-                  : { ...styles.inputContainer, ...styles.inputContainerError }
-                : { ...styles.inputContainer }
-            }
-          >
-            <Icon name="mail" />
-            <Input
-              value={credentials.email}
-              onChangeText={value => handleChangeCredentials("email", value)}
-              style={styles.input}
-              placeholder="Email"
-              keyboardType="email-address"
-            />
+          <View style={styles.inputContainer}>
+            <View
+              style={
+                validationOnPress.email
+                  ? validationOnPress.email === "success"
+                    ? {
+                        ...styles.inputField,
+                        ...styles.inputFieldSuccess
+                      }
+                    : {
+                        ...styles.inputField,
+                        ...styles.inputFieldError
+                      }
+                  : { ...styles.inputField }
+              }
+            >
+              <Icon name="mail" />
+              <Input
+                value={credentials.email}
+                onChangeText={value => handleChangeCredentials("email", value)}
+                style={styles.input}
+                placeholder="Email"
+                keyboardType="email-address"
+              />
+            </View>
+            {!!errors.email && (
+              <Text style={styles.inputError}>{errors.email}</Text>
+            )}
           </View>
-          <View
-            style={
-              validationOnPress.password
-                ? validationOnPress.password === "success"
-                  ? {
-                      ...styles.inputContainer,
-                      ...styles.inputContainerSuccess
-                    }
-                  : { ...styles.inputContainer, ...styles.inputContainerError }
-                : { ...styles.inputContainer }
-            }
-          >
-            <Icon name="lock" />
-            <Input
-              value={credentials.password}
-              onChangeText={value => handleChangeCredentials("password", value)}
-              style={styles.input}
-              placeholder="Password"
-              secureTextEntry={true}
-            />
+          <View style={styles.inputContainer}>
+            <View
+              style={
+                validationOnPress.password
+                  ? validationOnPress.password === "success"
+                    ? {
+                        ...styles.inputField,
+                        ...styles.inputFieldSuccess
+                      }
+                    : {
+                        ...styles.inputField,
+                        ...styles.inputFieldError
+                      }
+                  : { ...styles.inputField }
+              }
+            >
+              <Icon name="lock" />
+              <Input
+                value={credentials.password}
+                onChangeText={value =>
+                  handleChangeCredentials("password", value)
+                }
+                style={styles.input}
+                placeholder="Password"
+                secureTextEntry={true}
+              />
+            </View>
+            {!!errors.password && (
+              <Text style={styles.inputError}>{errors.password}</Text>
+            )}
           </View>
-
           <TouchableOpacity onPress={submit}>
             <Animatable.View
               style={styles.loginButtonContainer}
@@ -106,12 +143,13 @@ const Login = () => {
               <Text style={styles.loginButtonText}>Login</Text>
             </Animatable.View>
           </TouchableOpacity>
-        </Animatable.View>
-        <View style={styles.footer}>
-          <TouchableOpacity onPress={() => alert("x")}>
+          <TouchableOpacity
+            onPress={() => alert("x")}
+            style={styles.registerLinkContainer}
+          >
             <Text style={styles.registerLink}>New user? Register here</Text>
           </TouchableOpacity>
-        </View>
+        </Animatable.View>
       </ImageBackground>
     </View>
   );
@@ -131,11 +169,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderBottomColor: "orange",
     borderBottomWidth: 1,
-    paddingBottom: 10
+    paddingBottom: 10,
+    paddingTop: 20
   },
   icon: {
     fontSize: 40,
-    color: "#ffa900"
+    color: "#aa1100"
   },
   headerText: {
     fontWeight: "bold",
@@ -148,16 +187,17 @@ const styles = StyleSheet.create({
     marginTop: 10
   },
   content: {
-    flex: 1,
-    alignItems: "center"
+    flex: 2,
+    alignItems: "center",
+    paddingBottom: 65
   },
   contentMainText: {
     marginBottom: 10,
     marginTop: 40,
     fontSize: 20
   },
-  inputContainer: {
-    width: "80%",
+  inputContainer: { width: "85%" },
+  inputField: {
     flexDirection: "row",
     backgroundColor: "white",
     justifyContent: "flex-start",
@@ -165,17 +205,15 @@ const styles = StyleSheet.create({
     padding: 5,
     paddingLeft: 20,
     borderRadius: 20,
-    marginTop: 17
+    marginTop: 10,
+    overflow: "hidden"
   },
-  inputContainerSuccess: { borderColor: "green", borderWidth: 1 },
-  inputContainerError: { borderColor: "red", borderWidth: 1 },
-
+  inputFieldSuccess: { borderColor: "green", borderWidth: 1 },
+  inputFieldError: { borderColor: "red", borderWidth: 1 },
+  inputError: { paddingTop: 5, color: "red", textAlign: "center" },
   input: {
-    paddingLeft: 15
-  },
-  footer: {
-    flex: 1,
-    alignItems: "center"
+    paddingLeft: 15,
+    width: "100%"
   },
   loginButtonContainer: {
     flexDirection: "row",
@@ -189,8 +227,11 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 16
   },
+  registerLinkContainer: {
+    marginTop: 20
+  },
+
   registerLink: {
-    marginTop: 40,
     fontSize: 20
   }
 });
