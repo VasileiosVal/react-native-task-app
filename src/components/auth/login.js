@@ -5,20 +5,37 @@ import {
   Text,
   StyleSheet,
   ImageBackground,
-  TextInput,
-  TouchableOpacity
+  TouchableOpacity,
+  TextInput
 } from "react-native";
+import Joi from "react-native-joi";
 import { Icon } from "native-base";
-AnimatedTouchableOpacity = Animatable.createAnimatableComponent(
-  TouchableOpacity
-);
 
 import gradient from "../../assets/images/gradient.png";
+import { Input } from "../general/reusable";
+import { getLoginSchema } from "../../utils/joi-schema";
 
-//edw
 const Login = () => {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
+  const [validationOnPress, setValidationOnPress] = useState({});
+
+  const handleChangeCredentials = (key, value) => {
+    setErrors({});
+    const result = Joi.validate(value, getLoginSchema()[key], {
+      stripUnknown: true
+    });
+    const newValidationOnPress = { ...validationOnPress };
+    newValidationOnPress[key] = result.error ? "error" : "success";
+    setValidationOnPress(newValidationOnPress);
+    const newCredentials = { ...credentials };
+    newCredentials[key] = value;
+    setCredentials(newCredentials);
+  };
+
+  const submit = () => {
+    alert("logged in");
+  };
 
   return (
     <View style={styles.container}>
@@ -36,34 +53,59 @@ const Login = () => {
         </Animatable.View>
         <Animatable.View style={styles.content} animation="fadeIn" delay={600}>
           <Text style={styles.contentMainText}>Please login to proceed</Text>
-          <View style={styles.inputContainer}>
+          <View
+            style={
+              validationOnPress.email
+                ? validationOnPress.email === "success"
+                  ? {
+                      ...styles.inputContainer,
+                      ...styles.inputContainerSuccess
+                    }
+                  : { ...styles.inputContainer, ...styles.inputContainerError }
+                : { ...styles.inputContainer }
+            }
+          >
             <Icon name="mail" />
-            <TextInput
+            <Input
+              value={credentials.email}
+              onChangeText={value => handleChangeCredentials("email", value)}
               style={styles.input}
               placeholder="Email"
-              autoCapitalize="none"
-              autoCorrect={false}
               keyboardType="email-address"
             />
           </View>
-          <View style={styles.inputContainer}>
+          <View
+            style={
+              validationOnPress.password
+                ? validationOnPress.password === "success"
+                  ? {
+                      ...styles.inputContainer,
+                      ...styles.inputContainerSuccess
+                    }
+                  : { ...styles.inputContainer, ...styles.inputContainerError }
+                : { ...styles.inputContainer }
+            }
+          >
             <Icon name="lock" />
-            <TextInput
+            <Input
+              value={credentials.password}
+              onChangeText={value => handleChangeCredentials("password", value)}
               style={styles.input}
               placeholder="Password"
-              autoCapitalize="none"
-              autoCorrect={false}
+              secureTextEntry={true}
             />
           </View>
 
-          <AnimatedTouchableOpacity
-            style={styles.loginButtonContainer}
-            animation="zoomIn"
-            delay={1000}
-          >
-            <Icon name="log-in" />
-            <Text style={styles.loginButtonText}>Login</Text>
-          </AnimatedTouchableOpacity>
+          <TouchableOpacity onPress={submit}>
+            <Animatable.View
+              style={styles.loginButtonContainer}
+              animation="zoomIn"
+              delay={1000}
+            >
+              <Icon name="log-in" />
+              <Text style={styles.loginButtonText}>Login</Text>
+            </Animatable.View>
+          </TouchableOpacity>
         </Animatable.View>
         <View style={styles.footer}>
           <TouchableOpacity onPress={() => alert("x")}>
@@ -125,6 +167,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginTop: 17
   },
+  inputContainerSuccess: { borderColor: "green", borderWidth: 1 },
+  inputContainerError: { borderColor: "red", borderWidth: 1 },
+
   input: {
     paddingLeft: 15
   },
