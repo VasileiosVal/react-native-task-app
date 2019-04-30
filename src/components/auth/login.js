@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { connect } from "react-redux";
 import * as Animatable from "react-native-animatable";
 import {
   View,
@@ -8,15 +9,15 @@ import {
   TouchableOpacity
 } from "react-native";
 import Joi from "react-native-joi";
-import { Icon, Toast } from "native-base";
-import axios from "axios";
+import { Icon } from "native-base";
 
 import gradient from "../../assets/images/gradient.png";
 import { Input } from "../general/reusable";
 import { getLoginSchema } from "../../utils/joi-schema";
 import { validateResult } from "../../utils/general-functions";
+import { startLoginUser } from "../../actions/auth";
 
-const Login = () => {
+const Login = ({ dispatch, user, uiLoader }) => {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [validationOnPress, setValidationOnPress] = useState({});
@@ -34,29 +35,17 @@ const Login = () => {
     setCredentials(newCredentials);
   };
 
-  const submit = async () => {
+  const submit = () => {
     const result = Joi.validate(credentials, getLoginSchema(), {
       stripUnknown: true,
       abortEarly: false
     });
     const errorsFound = validateResult(result);
     if (errorsFound) return setErrors(errorsFound);
-    await attemptLogin(result.value);
-  };
 
-  const attemptLogin = async credentials => {
-    try {
-      const { data } = await axios.post("/auth/login", credentials);
-      console.log(data);
-    } catch (e) {
-      if (e.response.status === 400)
-        Toast.show({
-          text: e.response.data.error,
-          duration: 2000
-        });
-    }
+    dispatch(startLoginUser(result.value));
   };
-
+  console.log(user, uiLoader);
   return (
     <View style={styles.container}>
       <ImageBackground source={gradient} style={styles.background}>
@@ -236,4 +225,9 @@ const styles = StyleSheet.create({
   }
 });
 
-export default Login;
+const mapStateToProps = state => ({
+  user: state.user,
+  uiLoader: state.uiLoader
+});
+
+export default connect(mapStateToProps)(Login);
