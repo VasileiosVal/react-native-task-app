@@ -1,23 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { connect } from "react-redux";
 import * as Animatable from "react-native-animatable";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ImageBackground,
-  TouchableOpacity
-} from "react-native";
+import { View, Text, ImageBackground, TouchableOpacity } from "react-native";
 import Joi from "react-native-joi";
-import { Icon } from "native-base";
+import { Icon, Spinner, Toast } from "native-base";
 
+import styles from "../../assets/styles/stylesheet";
 import gradient from "../../assets/images/gradient.png";
 import { Input } from "../general/reusable";
 import { getLoginSchema } from "../../utils/joi-schema";
 import { validateResult } from "../../utils/general-functions";
 import { startLoginUser } from "../../actions/auth";
 
-const Login = ({ dispatch, user, uiLoader }) => {
+const Login = ({ dispatch, auth, uiLoader }) => {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [validationOnPress, setValidationOnPress] = useState({});
@@ -43,12 +38,39 @@ const Login = ({ dispatch, user, uiLoader }) => {
     const errorsFound = validateResult(result);
     if (errorsFound) return setErrors(errorsFound);
 
-    dispatch(startLoginUser(result.value));
+    dispatch(
+      startLoginUser(result.value, () => alert("succesfully logged in"))
+    );
   };
-  console.log(user, uiLoader);
+
+  useEffect(() => {
+    auth.error &&
+      Toast.show({
+        text: auth.error,
+        duration: 2000
+      });
+  }, [auth]);
+
+  const toggleLoginButton = () => {
+    return uiLoader ? (
+      <Spinner color="blue" />
+    ) : (
+      <TouchableOpacity onPress={submit}>
+        <Animatable.View
+          style={styles.loginButtonContainer}
+          animation="zoomIn"
+          delay={1000}
+        >
+          <Icon name="log-in" />
+          <Text style={styles.loginButtonText}>Login</Text>
+        </Animatable.View>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <View style={styles.container}>
-      <ImageBackground source={gradient} style={styles.background}>
+      <ImageBackground source={gradient} style={styles.container}>
         <Animatable.View
           style={styles.header}
           animation="fadeInDown"
@@ -75,7 +97,7 @@ const Login = ({ dispatch, user, uiLoader }) => {
                         ...styles.inputField,
                         ...styles.inputFieldError
                       }
-                  : { ...styles.inputField }
+                  : styles.inputField
               }
             >
               <Icon name="mail" />
@@ -122,16 +144,7 @@ const Login = ({ dispatch, user, uiLoader }) => {
               <Text style={styles.inputError}>{errors.password}</Text>
             )}
           </View>
-          <TouchableOpacity onPress={submit}>
-            <Animatable.View
-              style={styles.loginButtonContainer}
-              animation="zoomIn"
-              delay={1000}
-            >
-              <Icon name="log-in" />
-              <Text style={styles.loginButtonText}>Login</Text>
-            </Animatable.View>
-          </TouchableOpacity>
+          {toggleLoginButton()}
           <TouchableOpacity
             onPress={() => alert("x")}
             style={styles.registerLinkContainer}
@@ -144,89 +157,8 @@ const Login = ({ dispatch, user, uiLoader }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1
-  },
-  background: {
-    width: "100%",
-    height: "100%"
-  },
-  header: {
-    flex: 1,
-    justifyContent: "flex-end",
-    alignItems: "center",
-    borderBottomColor: "orange",
-    borderBottomWidth: 1,
-    paddingBottom: 10,
-    paddingTop: 20
-  },
-  icon: {
-    fontSize: 40,
-    color: "#aa1100"
-  },
-  headerText: {
-    fontWeight: "bold",
-    fontFamily: "Cochin",
-    fontSize: 30
-  },
-  headerBelowText: {
-    fontFamily: "Cochin",
-    fontSize: 23,
-    marginTop: 10
-  },
-  content: {
-    flex: 2,
-    alignItems: "center",
-    paddingBottom: 65
-  },
-  contentMainText: {
-    marginBottom: 10,
-    marginTop: 40,
-    fontSize: 20
-  },
-  inputContainer: { width: "85%" },
-  inputField: {
-    flexDirection: "row",
-    backgroundColor: "white",
-    justifyContent: "flex-start",
-    alignItems: "center",
-    padding: 5,
-    paddingLeft: 20,
-    borderRadius: 20,
-    marginTop: 10,
-    overflow: "hidden"
-  },
-  inputFieldSuccess: { borderColor: "green", borderWidth: 1 },
-  inputFieldError: { borderColor: "red", borderWidth: 1 },
-  inputError: { paddingTop: 5, color: "red", textAlign: "center" },
-  input: {
-    paddingLeft: 15,
-    width: "100%"
-  },
-  loginButtonContainer: {
-    flexDirection: "row",
-    padding: 7,
-    backgroundColor: "#f1926e",
-    alignItems: "center",
-    marginTop: 30,
-    borderRadius: 12
-  },
-  loginButtonText: {
-    marginLeft: 8,
-    fontSize: 16
-  },
-  registerLinkContainer: {
-    marginTop: 20
-  },
-
-  registerLink: {
-    fontSize: 20
-  }
-});
-
 const mapStateToProps = state => ({
-  user: state.user,
+  auth: state.auth,
   uiLoader: state.uiLoader
 });
 
