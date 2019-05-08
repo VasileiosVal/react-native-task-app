@@ -1,5 +1,5 @@
 # Task Manager
-(In progress) Native mobile application managing personal tasks and events, communicating with RESTful API, implemented with React Native and Redux
+(In progress) Native mobile application managing personal tasks and events, communicating with RESTful API, implemented with React Native and Redux.
 
 The application is emplemented with the ejected version (native) and tested on Iphone X simulator.
 
